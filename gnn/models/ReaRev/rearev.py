@@ -210,14 +210,14 @@ class ReaRev(BaseModel):
         """
         BFS + GNN reasoning
         """
-        all_paths = []
+        # all_paths = [] 看看能不能不返回，直接在self.reasoning里写入
         for t in range(self.num_iter):
             relation_ins = torch.cat(self.instruction.instructions, dim=1)
             self.curr_dist = current_dist            
             for j in range(self.num_gnn): # GNN的层数
-                # 调用gnn/modules/kg_reasoning/reasongnn.py，更新curr_dist
-                self.curr_dist, global_rep, path = self.reasoning(self.curr_dist, relation_ins, step=j) # 关系指令：包含了关系的语义信息
-                all_paths.append(path)
+                # 调用gnn/modules/kg_reasoning/reasongnn.py的函数forward，更新curr_dist
+                self.curr_dist, global_rep = self.reasoning(self.curr_dist, relation_ins, step=j) # 关系指令：包含了关系的语义信息
+                # all_paths.append(path)
                 # step是当前GNN层
             self.dist_history.append(self.curr_dist) # 这里记录了分布历史
             qs = []
@@ -251,6 +251,6 @@ class ReaRev(BaseModel):
             tp_list = [h1.tolist(), f1.tolist()]
         else:
             tp_list = None
-        return loss, pred, pred_dist, tp_list, all_paths
+        return loss, pred, pred_dist, tp_list
 
     

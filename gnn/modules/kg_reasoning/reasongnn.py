@@ -1,7 +1,8 @@
-
+import os
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
+import json
 
 
 from .base_gnn import BaseGNNLayer
@@ -210,13 +211,29 @@ class ReasonGNNLayer(BaseGNNLayer):
         max_prob_entities = torch.argmax(current_dist, dim=1)  
         for batch_idx in range(current_dist.size(0)):  
             entity_idx = max_prob_entities[batch_idx].item()  
-            self.path_records[(batch_idx, step)] = {  
+            record = {  
                 'entity': entity_idx,  
                 'probability': current_dist[batch_idx, entity_idx].item(),  
                 'paths': path_info  
-            }
+            }  
+            """
+            # 检查文件是否存在  
+            if os.path.exists('path_records.json'):  
+                # 如果文件存在，读取已有内容  
+                with open('path_records.json', 'r') as json_file:  
+                    all_records = json.load(json_file)  
+            else:  
+                # 如果文件不存在，创建一个新的字典  
+                all_records = {}  
+
+            # 添加新的记录  
+            all_records[str((batch_idx, step))] = record  
+
+            # 将更新后的内容写回 JSON 文件  
+            with open('path_records.json', 'w') as json_file:  
+                json.dump(all_records, json_file, indent=4)    
+            """
         
-        
-        return current_dist, self.local_entity_emb, self.path_records 
+        return current_dist, self.local_entity_emb
 
 

@@ -8,7 +8,8 @@ import time
 #from Models.ReaRev.rearev import 
 from train_model import Trainer_KBQA
 from parsing import add_parse_args
-
+import sys  
+print("sys.argv:", sys.argv)
 parser = argparse.ArgumentParser()
 add_parse_args(parser)
 

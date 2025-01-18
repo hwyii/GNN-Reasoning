@@ -117,6 +117,8 @@ class Trainer_KBQA(object):
             ckpt_path = os.path.join(args['checkpoint_dir'], args['load_experiment'])
             print("Load ckpt from", ckpt_path)
             self.load_ckpt(ckpt_path)
+
+
     def save_paths(self, paths, filename):  
         """保存推理路径到文件"""  
         import json  
@@ -138,7 +140,9 @@ class Trainer_KBQA(object):
             json.dump(processed_paths, f, ensure_ascii=False, indent=2)
 
     def evaluate(self, data, test_batch_size=20, write_info=False):  
-        """添加路径信息的收集"""  
+        """添加路径信息的收集""" 
+        return self.evaluator.evaluate(data, test_batch_size, write_info)
+        """ 
         metrics, paths = self.evaluator.evaluate(data, test_batch_size, write_info)  
         
         if write_info and paths:  
@@ -150,6 +154,7 @@ class Trainer_KBQA(object):
             self.save_paths(paths, path_file)  
             
         return metrics
+        """
 
     def monitor_memory(self):  
         """监控GPU内存使用情况"""  
@@ -221,6 +226,7 @@ class Trainer_KBQA(object):
 
     def evaluate_best(self):
         #torch.cuda.empty_cache()
+        """
         filename = os.path.join(self.args['checkpoint_dir'], "{}-h1.ckpt".format(self.args['experiment_name']))
         self.load_ckpt(filename)
         eval_f1, eval_h1, eval_em = self.evaluate(self.test_data, self.test_batch_size, write_info=False)
@@ -232,7 +238,7 @@ class Trainer_KBQA(object):
         eval_f1, eval_h1, eval_em = self.evaluate(self.test_data, self.test_batch_size,  write_info=False)
         self.logger.info("Best f1 evaluation")
         self.logger.info("TEST F1: {:.4f}, H1: {:.4f}, EM {:.4f}".format(eval_f1, eval_h1, eval_em))
-
+        """
         filename = os.path.join(self.args['checkpoint_dir'], "{}-final.ckpt".format(self.args['experiment_name']))
         self.load_ckpt(filename)
         eval_f1, eval_h1, eval_em = self.evaluate(self.test_data, self.test_batch_size, write_info=False)
@@ -262,14 +268,12 @@ class Trainer_KBQA(object):
             batch = self.train_data.get_batch(iteration, self.args['batch_size'], self.args['fact_drop'])
             
             self.optim_model.zero_grad()
-            loss, _, _, tp_list, batch_paths = self.model(batch, training=True)
+            loss, _, _, tp_list = self.model(batch, training=True)
             # if tp_list is not None:
             h1_list, f1_list = tp_list
             h1_list_all.extend(h1_list)
             f1_list_all.extend(f1_list)
 
-            if batch_paths is not None:
-                path_records.extend(batch_paths)
 
             loss.backward()
             torch.nn.utils.clip_grad_norm_([param for name, param in self.model.named_parameters()],
@@ -277,13 +281,6 @@ class Trainer_KBQA(object):
             self.optim_model.step()
             losses.append(loss.item())
             
-        # 定期保存训练过程中的路径信息  
-        if path_records and (len(path_records) % self.args.get('path_save_interval', 1000) == 0):  
-            path_file = os.path.join(  
-                self.args['checkpoint_dir'],   
-                f"{self.args['experiment_name']}_train_paths_{len(path_records)}.json"  
-            )  
-            self.save_paths(path_records, path_file)  
 
         extras = [0, 0]
         return np.mean(losses), extras, h1_list_all, f1_list_all
